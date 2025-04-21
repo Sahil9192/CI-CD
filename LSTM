@@ -1,0 +1,52 @@
+LSTM/GRU
+import numpy as np
+import matplotlib.pyplot as plt
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense
+from sklearn.preprocessing import MinMaxScaler
+
+# Step 1: Create synthetic time series data (e.g., sine wave)
+time_steps = np.linspace(0, 100, 500)
+data = np.sin(time_steps) + np.random.normal(0, 0.1, 500)  # Sine wave with noise
+
+# Step 2: Normalize data
+scaler = MinMaxScaler()
+data_scaled = scaler.fit_transform(data.reshape(-1, 1))
+
+# Step 3: Create sequences for LSTM
+def create_sequences(data, seq_length):
+    X, y = [], []
+    for i in range(len(data) - seq_length):
+        X.append(data[i:i + seq_length])
+        y.append(data[i + seq_length])
+    return np.array(X), np.array(y)
+
+seq_length = 20
+X, y = create_sequences(data_scaled, seq_length)
+
+# Reshape for LSTM [samples, time steps, features]
+X = X.reshape((X.shape[0], X.shape[1], 1))
+
+# Step 4: Build the LSTM model
+model = Sequential([
+    LSTM(50, activation='relu', input_shape=(seq_length, 1)),
+    Dense(1)
+])
+model.compile(optimizer='adam', loss='mse')
+
+# Step 5: Train the model
+model.fit(X, y, epochs=20, batch_size=32, verbose=1)
+
+# Step 6: Forecast next value
+last_sequence = data_scaled[-seq_length:].reshape(1, seq_length, 1)
+next_value = model.predict(last_sequence)
+next_value = scaler.inverse_transform(next_value)
+
+print("Next predicted value:", next_value[0][0])
+
+# Optional: Plot original and forecasted point
+plt.plot(data, label='Original Data')
+plt.scatter(len(data), next_value[0], color='red', label='Forecast')
+plt.legend()
+plt.title("Time Series Forecasting (LSTM)")
+plt.show()
